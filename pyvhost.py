@@ -97,7 +97,11 @@ class VHost(object):
             if self.skel == "":
                 self.skel = "/home/vhostskel"
 
-            self.disc_quotum = int(raw_input("Disc quotum (in MB): "))
+            try:
+                self.disc_quotum = int(raw_input("Disc quotum (in MB): "))
+            except ValueError:
+                log("warn", "Invalid entry - disc quotum set to 0")
+                self.disc_quotum = 0
 
         if to_do['nginx']:
             self.hostnames = raw_input("Server name(s) (space separated): ")
