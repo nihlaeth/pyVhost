@@ -9,6 +9,8 @@ import os
 import errno
 
 import MySQLdb as db
+import gnupg
+from email.mime.text import MIMEText
 
 # Dirty check for root privileges
 try:
@@ -49,6 +51,7 @@ class VHost(object):
         self.hostnames = ""
         self.nginx = {'ssl': False, 'php': True}
         self.disc_quotum = 100
+        self.mailto = ""
 
     def prompt(self):
         """Get data for virtual host."""
@@ -72,6 +75,8 @@ class VHost(object):
             'php': str_to_bool(raw_input("Use php (yes/no): "))}
 
         self.disc_quotum = int(raw_input("Disc quotum (in MB): "))
+
+        self.mailto = raw_input("Mail summary to: ")
 
     def create(self):
         """After confirming the details, create the virtual host."""
@@ -178,6 +183,24 @@ class VHost(object):
             print "Failed to set disc quotum.", error
 
         # mail summary to specified addresses, preferably using pgp
+        gpg = gnupg.GPG(gnupghome='/root')
+        gpg.encoding = 'utf-8'
+        # Note that any public key provided here must be trustes, or the
+        # encryption will fail silently. No errors!
+        encrypted_ascii_data = gpg.encrypt(str(self), self.mailto)
+        msg = MIMEText(encrypted_ascii_data)
+        msg["From"] = "bestuur@humanity4all.nl"
+        msg["To"] = self.mailto
+        msg["Subject"] = "Virtual host (%s) created on inanna.humanity4all.nl." % self.username
+        try:
+            pipe = subprocess.Popen(
+                ["/usr/sbin/sendmail", "-t", "-oi"],
+                stdin=subprocess.PIPE)
+            pipe.communicate(msg.as_string())
+        except OSError as error:
+            print "Failed to send summary email.", error
+        else:
+            print "Summary email sent."
 
         return 0
 
