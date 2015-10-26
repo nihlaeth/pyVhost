@@ -223,7 +223,7 @@ class VHost(object):
                     nowp="#" if self.nginx["wp"] else "",
                     php="" if self.nginx["php"] else "#",
                     nophp="#" if self.nginx["php"] else "",
-                    wwwred="" if self.nginx["wwwred"] else "",
+                    wwwred="" if self.nginx["wwwred"] else "#",
                     ipv6="" if self.nginx["ipv6"] else "#")
                 path = os.path.join(
                     "/etc/nginx/sites-available",
@@ -235,6 +235,31 @@ class VHost(object):
             log("fail", error)
         else:  # only attempt symlink creation and nginx restart at success
             log("ok", "Nginx config created")
+
+            # if indicated, create self-signed certificates
+            try:
+                subprocess.check_call([
+                    "openssl",
+                    "req",
+                    "-new",
+                    "-x509",
+                    "-sha256",
+                    "-days",
+                    "365",
+                    "-nodes",
+                    "-newkey",
+                    "rsa:2048",
+                    "-out",
+                    os.path.join("/etc/nginx/certs", self.domain + ".pem"),
+                    "-keyout",
+                    os.path.join("/etc/nginx/certs", self.domain + ".key")
+                    ])
+            except (OSError, subprocess.CalledProcessError) as error:
+                log("fail", "Failed to create certificates.")
+                log("fail", error)
+            else:
+                log("ok", "Created self-signed certificates.")
+
             # now link this config file in sites-enabled and restart nginx
             try:
                 subprocess.check_call([

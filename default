@@ -18,7 +18,8 @@ server {
 	access_log /var/log/nginx/$domain.log;
 	root $docroot;
 	
-	$ssl ssl_certificate certs/$domain.pem;
+	$ssl ssl on;
+        $ssl ssl_certificate certs/$domain.pem;
 	$ssl ssl_certificate_key certs/$domain.key;
 
 	include global/restrictions.conf;
