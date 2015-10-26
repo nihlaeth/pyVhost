@@ -58,9 +58,11 @@ class VHost(object):
         """Get data for virtual host."""
         self.username = raw_input("Username: ").lower()
 
-        self.domain = raw_input("Domain name: ").lower()
+        if to_do['domain']:
+            self.domain = raw_input("Domain name: ").lower()
 
-        self.password = gen_passwd()
+        if to_do['user'] or to_do['mysql']:
+            self.password = gen_passwd()
 
         self.homedir = raw_input("Homedir[/home/%s]: " % self.username)
         if self.homedir == "":
@@ -233,14 +235,13 @@ class VHost(object):
         else:
             print "Summary email sent."
 
-    def create(self, args):
+    def create(self, action):
         """Execute appropriate parts after confirmation."""
         to_do = {
             'user': False,
             'domain': False,
             'mysql': False,
             'nginx': False}
-        action = args["action"]
         if action == "create-user":
             to_do['user'] = True
         elif action == "add-domain":
@@ -269,18 +270,25 @@ class VHost(object):
         print ""
         raw_input("Cancel by pressing Ctrl-C or confirm by pressing Enter")
 
+        exit_code = 0
         if to_do['user']:
-            self.create_user()
-            self.set_disc_quota()
+            code = self.create_user()
+            exit_code = code if code != 0 else exit_code
+            code = self.set_disc_quota()
+            exit_code = code if code != 0 else exit_code
         if to_do['domain']:
-            self.create_domain()
+            code = self.create_domain()
+            exit_code = code if code != 0 else exit_code
         if to_do['mysql']:
-            self.create_db()
+            code = self.create_db()
+            exit_code = code if code != 0 else exit_code
         if to_do['nginx']:
-            self.create_nginx()
-        self.mail_summary()
+            code = self.create_nginx()
+            exit_code = code if code != 0 else exit_code
+        code = self.mail_summary()
+        exit_code = code if code != 0 else exit_code
 
-        return 0
+        return exit_code
 
     def __str__(self):
         """Display data."""
@@ -308,7 +316,7 @@ PARSER.add_argument(
     help="action the script is to perform")
 
 ARGS = PARSER.parse_args()
-
+print ARGS
 VHOST = VHost()
 
-sys.exit(VHOST.create(ARGS))
+sys.exit(VHOST.create(ARGS.action))
