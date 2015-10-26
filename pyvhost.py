@@ -11,6 +11,7 @@ import errno
 import MySQLdb as db
 import gnupg
 from email.mime.text import MIMEText
+import argparse
 
 # Dirty check for root privileges
 try:
@@ -53,7 +54,7 @@ class VHost(object):
         self.disc_quotum = 100
         self.mailto = ""
 
-    def prompt(self):
+    def prompt(self, to_do):
         """Get data for virtual host."""
         self.username = raw_input("Username: ").lower()
 
@@ -65,17 +66,19 @@ class VHost(object):
         if self.homedir == "":
             self.homedir = "/home/%s" % self.username
 
-        self.skel = raw_input("Skeleton dir[/home/vhostskel]: ")
-        if self.skel == "":
-            self.skel = "/home/vhostskel"
+        if to_do['user']:
+            self.skel = raw_input("Skeleton dir[/home/vhostskel]: ")
+            if self.skel == "":
+                self.skel = "/home/vhostskel"
 
-        self.hostnames = raw_input("Server name(s) (space separated): ")
+            self.disc_quotum = int(raw_input("Disc quotum (in MB): "))
 
-        self.nginx = {
-            'ssl': str_to_bool(raw_input("Use ssl (yes/no): ")),
-            'php': str_to_bool(raw_input("Use php (yes/no): "))}
+        if to_do['nginx']:
+            self.hostnames = raw_input("Server name(s) (space separated): ")
 
-        self.disc_quotum = int(raw_input("Disc quotum (in MB): "))
+            self.nginx = {
+                'ssl': str_to_bool(raw_input("Use ssl (yes/no): ")),
+                'php': str_to_bool(raw_input("Use php (yes/no): "))}
 
         self.mailto = raw_input("Mail summary to: ")
 
@@ -230,13 +233,51 @@ class VHost(object):
         else:
             print "Summary email sent."
 
-    def create(self):
-        """After confirming the details, create the virtual host."""
-        self.create_user()
-        self.create_domain()
-        self.create_db()
-        self.create_nginx()
-        self.set_disc_quota()
+    def create(self, args):
+        """Execute appropriate parts after confirmation."""
+        to_do = {
+            'user': False,
+            'domain': False,
+            'mysql': False,
+            'nginx': False}
+        action = args["action"]
+        if action == "create-user":
+            to_do['user'] = True
+        elif action == "add-domain":
+            to_do['domain'] = True
+            to_do['mysql'] = True
+            to_do['nginx'] = True
+        elif action == "create-db":
+            to_do['mysql'] = True
+        elif action == "create-nginx-config":
+            to_do['nginx'] = True
+        elif action == "all":
+            to_do['user'] = True
+            to_do['domain'] = True
+            to_do['mysql'] = True
+            to_do['nginx'] = True
+
+        self.prompt(to_do)
+
+        print "#########################"
+        print "#        Summary        #"
+        print "#########################"
+        print ""
+        print self
+        print ""
+        print to_do
+        print ""
+        raw_input("Cancel by pressing Ctrl-C or confirm by pressing Enter")
+
+        if to_do['user']:
+            self.create_user()
+            self.set_disc_quota()
+        if to_do['domain']:
+            self.create_domain()
+        if to_do['mysql']:
+            self.create_db()
+        if to_do['nginx']:
+            self.create_nginx()
         self.mail_summary()
 
         return 0
@@ -253,16 +294,21 @@ class VHost(object):
         result += "Disc quotum: %sMB" % self.disc_quotum
         return result
 
+PARSER = argparse.ArgumentParser(
+    prog="pyVHost",
+    description='Create virtual hosts.')
+PARSER.add_argument(
+    'action',
+    choices=[
+        "create-user",
+        "add-domain",
+        "create-db",
+        "create-nginx-config",
+        "all"],
+    help="action the script is to perform")
+
+ARGS = PARSER.parse_args()
 
 VHOST = VHost()
 
-VHOST.prompt()
-
-print ""
-print VHOST
-
-print ""
-raw_input("Cancel by pressing Ctrl-C or confirm by pressing Enter")
-print ""
-
-sys.exit(VHOST.create())
+sys.exit(VHOST.create(ARGS))
