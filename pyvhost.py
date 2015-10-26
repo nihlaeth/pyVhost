@@ -15,7 +15,7 @@ from email.mime.text import MIMEText
 # Dirty check for root privileges
 try:
     os.rename('/etc/foo', '/etc/bar')
-except IOError as error:
+except (OSError, IOError) as error:
     if error[0] == errno.EPERM:
         print >> sys.stderr, "You need root privileges to execute this script."
         sys.exit(1)
@@ -96,13 +96,9 @@ class VHost(object):
 
         # mysql
         # pylint: disable=no-member
-        try:
+
+        if self.mysql:
             mysql_pass = getpass.getpass("Password for mysql root user: ")
-            connection = db.connect(
-                host="localhost",
-                username="root",
-                passwd=mysql_pass)
-            cursor = connection.cursor()
             if len(self.username) > 16:
                 dbuser = self.username[0:16]
             else:
@@ -112,23 +108,29 @@ class VHost(object):
             sql += "to %s@\"localhost\" " % dbuser
             sql += "identified by \"%s\";\n" % self.password
             sql += "flush privileges;\n"
-            cursor.execute(sql)
-            cursor.close()
-            connection.close()
-        except db.Error as error:
-            print "Database creation failed:"
-            print "Error %d: %s" % (error.args[0], error.args[1])
-            print "Try executing the sql manually:"
-            print sql
-        else:
-            print "Database creation successful!"
+            try:
+                connection = db.connect(
+                    host="localhost",
+                    user="root",
+                    passwd=mysql_pass)
+                cursor = connection.cursor()
+                cursor.execute(sql)
+                cursor.close()
+                connection.close()
+            except db.Error as error:
+                print "Database creation failed:"
+                print "Error %d: %s" % (error.args[0], error.args[1])
+                print "Try executing the sql manually:"
+                print sql
+            else:
+                print "Database creation successful!"
 
         # nginx conf - work with templates
         if self.nginx["ssl"] and self.nginx["php"]:
             config = "nginx-php-ssl.template"
         elif self.nginx["ssl"]:
             config = "nginx-ssl.template"
-        elif self.php["php"]:
+        elif self.nginx["php"]:
             config = "nginx-php.template"
         else:
             config = "nginx.template"
@@ -138,7 +140,8 @@ class VHost(object):
                 template = string.Template(source.read())
                 template.substitute(
                     hostnames=self.hostnames,
-                    username=self.username)
+                    username=self.username,
+                    homedir=self.homedir)
                 path = os.path.join(
                     "/etc/nginx/sites-available",
                     self.username)
@@ -171,13 +174,13 @@ class VHost(object):
 
         # disc quota
         try:
-            subprocess.call_check([
+            subprocess.check_call([
                 "setquota",
                 "-u", self.username,
-                self.disc_quotum * 5,  # soft limit (blocks)
-                int(self.disc_quotum * 5 * 1.5),  # hard limit (blocks)
-                0,  # soft limit (inodes)
-                0,  # hard limit (inodes)
+                str(self.disc_quotum * 5),  # soft limit (blocks)
+                str(int(self.disc_quotum * 5 * 1.5)),  # hard limit (blocks)
+                "0",  # soft limit (inodes)
+                "0",  # hard limit (inodes)
                 "-a"])  # on all volumes in /etc/mtab
         except (OSError, subprocess.CalledProcessError) as error:
             print "Failed to set disc quotum.", error
