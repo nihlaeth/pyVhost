@@ -1,3 +1,4 @@
+#!/usr/bin/python
 """Virtual host creation in python."""
 import string
 from random import choice
