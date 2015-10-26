@@ -128,6 +128,7 @@ class VHost(object):
         else:
             config = "nginx.template"
 
+        # TODO: catch errors so we know if config was created successfully
         with open(config, "r") as source:
             template = string.Template(source.read())
             template.substitute(
@@ -148,9 +149,21 @@ class VHost(object):
                 "/etc/nginx/sites-enabled/."])
         except (OSError, subprocess.CalledProcessError) as error:
             print "Failed to create symlink in /etc/nginx/sites-enabled", error
+        else:
+            print "Created symlink to enable virtual host."
 
-        # disc quota 
-
+        # disc quota
+        try:
+            subprocess.call_check([
+                "setquota",
+                "-u", self.username,
+                self.disc_quotum * 5,  # soft limit (blocks)
+                int(self.disc_quotum * 5 * 1.5),  # hard limit (blocks)
+                0,  # soft limit (inodes)
+                0,  # hard limit (inodes)
+                "-a"])  # on all volumes in /etc/mtab
+        except (OSError, subprocess.CalledProcessError) as error:
+            print "Failed to set disc quotum.", error
 
         # mail summary to specified addresses, preferably using pgp
 
