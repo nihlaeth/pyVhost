@@ -7,7 +7,7 @@ server {
         server_name $hostnames;
 
         # separate access log
-        access_log /var/log/nginx/$username.access.log;
+        access_log /var/log/nginx/$domain.access.log;
 
         # SSL configuration
         #
@@ -19,7 +19,7 @@ server {
         #
         # include snippets/snakeoil.conf;
 
-        root ${homedir}/www;
+        root ${docroot}/www;
 
         # Add index.php to the list if you are using PHP
         index index.html index.htm index.nginx-debian.html index.php;
