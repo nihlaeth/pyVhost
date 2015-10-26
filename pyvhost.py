@@ -84,7 +84,12 @@ class VHost(object):
         self.homedir = ""
         self.skel = ""
         self.hostnames = ""
-        self.nginx = {'ssl': False, 'php': False}
+        self.nginx = {
+            'ssl': False,
+            'sslred': False,
+            'php': False,
+            'wp': False,
+            'wwwred': False}
         self.disc_quotum = 100
         self.mailto = ""
 
@@ -121,7 +126,15 @@ class VHost(object):
 
             self.nginx = {
                 'ssl': str_to_bool(raw_input("Use ssl (yes/no): ")),
-                'php': str_to_bool(raw_input("Use php (yes/no): "))}
+                'sslred': str_to_bool(raw_input(
+                    "Redirect to https? (yes/no): ")),
+                'sslcert': str_to_bool(raw_input(
+                    "Create self-signed certificates? (yes/no): ")),
+                'wwwred': str_to_bool(raw_input(
+                    "Redirect to www? (yes/no): ")),
+                'php': str_to_bool(raw_input("Use php (yes/no): ")),
+                'ipv6': str_to_bool(raw_input("Use ipv6 (yes/no): ")),
+                'wp': str_to_bool(raw_input("Wordpress settings? (yes/no): "))}
 
         self.mailto = raw_input("Mail summary to: ")
 
@@ -192,27 +205,26 @@ class VHost(object):
             log("fail", error)
         else:
             log(
-                "success",
+                "ok",
                 "Set %s as owner of domain folder." % self.username)
 
     def create_nginx(self):
         """Create nginx config file."""
-        if self.nginx["ssl"] and self.nginx["php"]:
-            config = "nginx-php-ssl.template"
-        elif self.nginx["ssl"]:
-            config = "nginx-ssl.template"
-        elif self.nginx["php"]:
-            config = "nginx-php.template"
-        else:
-            config = "nginx.template"
-
         try:
-            with open(config, "r") as source_file:
+            with open("default", "r") as source_file:
                 template = string.Template(source_file.read())
-                template.substitute(
+                template = template.substitute(
                     hostnames=self.hostnames,
                     domain=self.domain,
-                    docroot=os.path.join(self.homedir, self.domain, "www"))
+                    docroot=os.path.join(self.homedir, self.domain, "www"),
+                    ssl="" if self.nginx["ssl"] else "#",
+                    sslred="" if self.nginx["sslred"] else "#",
+                    wp="" if self.nginx["wp"] else "#",
+                    nowp="#" if self.nginx["wp"] else "",
+                    php="" if self.nginx["php"] else "#",
+                    nophp="#" if self.nginx["php"] else "",
+                    wwwred="" if self.nginx["wwwred"] else "",
+                    ipv6="" if self.nginx["ipv6"] else "#")
                 path = os.path.join(
                     "/etc/nginx/sites-available",
                     self.domain)
