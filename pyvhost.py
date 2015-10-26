@@ -38,6 +38,14 @@ def str_to_bool(text):
         return False
 
 
+def cap16(text):
+    """Return string of max length 16."""
+    if len(text) > 16:
+        return text[0:16]
+    else:
+        return text
+
+
 def log(lvl, msg):
     """Log data (with pretty colors)."""
     header = '\033[95m'
@@ -71,6 +79,7 @@ class VHost(object):
         """Set variables to defaults."""
         self.username = ""
         self.domain = ""
+        self.dbuser = ""
         self.password = ""
         self.homedir = ""
         self.skel = ""
@@ -117,13 +126,10 @@ class VHost(object):
         """Create database."""
         # pylint: disable=no-member
         mysql_pass = getpass.getpass("Password for mysql root user: ")
-        if len(self.username) > 16:
-            dbuser = self.username[0:16]
-        else:
-            dbuser = self.username
-        sql = "create database %s;\n" % dbuser
-        sql += "grant all privileges on %s.* " % dbuser
-        sql += "to %s@\"localhost\" " % dbuser
+        self.dbuser = cap16(self.domain)
+        sql = "create database %s;\n" % self.dbuser
+        sql += "grant all privileges on %s.* " % self.dbuser
+        sql += "to %s@\"localhost\" " % self.dbuser
         sql += "identified by \"%s\";\n" % self.password
         sql += "flush privileges;\n"
         try:
@@ -343,13 +349,14 @@ class VHost(object):
     def __str__(self):
         """Display data."""
         result = "Username: %s\n" % self.username
-        result += "Domain: %s\n" % self.domain
-        result += "Password: %s\n" % self.password
         result += "Home directory: %s\n" % self.homedir
         result += "Skeleton directory: %s\n" % self.skel
+        result += "Disc quotum: %sMB" % self.disc_quotum
+        result += "Password: %s\n" % self.password
+        result += "Database: %s\n" % self.dbuser
+        result += "Domain: %s\n" % self.domain
         result += "Hostnames: %s\n" % self.hostnames
         result += "Nginx: %s\n" % self.nginx
-        result += "Disc quotum: %sMB" % self.disc_quotum
         return result
 
 PARSER = argparse.ArgumentParser(
