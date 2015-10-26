@@ -18,7 +18,7 @@ try:
     os.rename('/etc/foo', '/etc/bar')
 except (OSError, IOError) as error:
     if error[0] == errno.EPERM:
-        print >> sys.stderr, "You need root privileges to execute this script."
+        log("fail", "You need root privileges to execute this script.")
         sys.exit(1)
 
 
@@ -35,6 +35,30 @@ def str_to_bool(text):
         return True
     else:
         return False
+
+
+def log(lvl, msg):
+    """Log data (with pretty colors)."""
+    header = '\033[95m'
+    okblue = '\033[94m'
+    okgreen = '\033[32m'  # '\033[92m'
+    warning = '\033[36m'  # '\033[93m'
+    fail = '\033[91m'
+    endc = '\033[0m'
+    # bold = "\033[1m"
+    if lvl == "info":
+        print okblue + str(msg) + endc
+    elif lvl == "header":
+        print header + str(msg) + endc
+    elif lvl == "ok":
+        print okgreen + str(msg) + endc
+    elif lvl == "fail":
+        print fail + str(msg) + endc
+    elif lvl == "warn":
+        print warning + str(msg) + endc
+    else:
+        print fail + "unknown log type"
+        print str(msg) + endc
 
 
 # pylint: disable=too-many-instance-attributes
@@ -107,12 +131,12 @@ class VHost(object):
             cursor.close()
             connection.close()
         except db.Error as error:
-            print "Database creation failed:"
-            print "Error %d: %s" % (error.args[0], error.args[1])
-            print "Try executing the sql manually:"
-            print sql
+            log("fail", "Database creation failed:")
+            log("fail", "Error %d: %s" % (error.args[0], error.args[1]))
+            log("info", "Try executing the sql manually:")
+            log("info", sql)
         else:
-            print "Database creation successful!"
+            log("ok", "Database creation successful!")
 
     def create_user(self):
         """Create user account."""
@@ -125,10 +149,11 @@ class VHost(object):
                 "-p", crypt.crypt(self.password, "22"),  # encrypted password
                 self.username])
         except (OSError, subprocess.CalledProcessError) as error:
-            print "Failed to create user account.", error
+            log("fail", "Failed to create user account.")
+            log("fail", error)
             return 1
         else:
-            print "User creation successful!"
+            log("ok", "User creation successful!")
 
     def create_domain(self):
         """Create domain folder inside user account."""
@@ -138,9 +163,10 @@ class VHost(object):
                 "-p",
                 os.path.join(self.homedir, self.domain, "www")])
         except (OSError, subprocess.CalledProcessError) as error:
-            print "Failed to create domain folder.", error
+            log("fail", "Failed to create domain folder.")
+            log("fail", error)
         else:
-            print "Created domain folder."
+            log("ok", "Created domain folder.")
 
         try:
             subprocess.check_call([
@@ -149,9 +175,12 @@ class VHost(object):
                 self.username + ":",
                 os.path.join(self.homedir, self.domain)])
         except (OSError, subprocess.CalledProcessError) as error:
-            print "Failed to chown domain folder.", error
+            log("fail", "Failed to chown domain folder.")
+            log("fail", error)
         else:
-            print "Set %s as owner of domain folder." % self.username
+            log(
+                "success",
+                "Set %s as owner of domain folder." % self.username)
 
     def create_nginx(self):
         """Create nginx config file."""
@@ -177,9 +206,10 @@ class VHost(object):
                 with open(path, "w") as config_file:
                     config_file.write(template)
         except (OSError, IOError) as error:
-            print "Failed to create config file for nginx.", error
+            log("fail", "Failed to create config file for nginx.")
+            log("fail", error)
         else:  # only attempt symlink creation and nginx restart at success
-            print "Nginx config created"
+            log("ok", "Nginx config created")
             # now link this config file in sites-enabled and restart nginx
             try:
                 subprocess.check_call([
@@ -188,17 +218,19 @@ class VHost(object):
                     path,
                     "/etc/nginx/sites-enabled/."])
             except (OSError, subprocess.CalledProcessError) as error:
-                print "Failed to create symlink.", error
+                log("fail", "Failed to create symlink.")
+                log("fail", error)
             else:
-                print "Created symlink to enable virtual host."
+                log("ok", "Created symlink to enable virtual host.")
             try:
                 subprocess.check_call([
                     "/etc/init.d/nginx",
                     "restart"])
             except (OSError, subprocess.CalledProcessError) as error:
-                print "Failed to restart nginx.", error
+                log("fail", "Failed to restart nginx.")
+                log("fail", error)
             else:
-                print "Restarted nginx."
+                log("ok", "Restarted nginx.")
 
     def set_disc_quota(self):
         """Set disc quota."""
@@ -212,7 +244,8 @@ class VHost(object):
                 "0",  # hard limit (inodes)
                 "-a"])  # on all volumes in /etc/mtab
         except (OSError, subprocess.CalledProcessError) as error:
-            print "Failed to set disc quotum.", error
+            log("fail", "Failed to set disc quotum.")
+            log("fail", error)
 
     def mail_summary(self):
         """Send a summary to specified mail addresses via pgp it possible."""
@@ -223,7 +256,7 @@ class VHost(object):
             self.mailto.split(", "),
             always_trust=True)
         if str(encrypted_ascii_data) == "":
-            print "No public key available. Send unencrypted?"
+            log("warn", "No public key available. Send unencrypted?")
             raw_input("Press Ctrl-C to cancel, press Enter to continue.")
             msg = MIMEText(str(self))
         else:
@@ -237,9 +270,10 @@ class VHost(object):
                 stdin=subprocess.PIPE)
             pipe.communicate(msg.as_string())
         except OSError as error:
-            print "Failed to send summary email.", error
+            log("fail", "Failed to send summary email.")
+            log("fail", error)
         else:
-            print "Summary email sent."
+            log("ok", "Summary email sent.")
 
     def create(self, action):
         """Execute appropriate parts after confirmation."""
@@ -266,16 +300,19 @@ class VHost(object):
 
         self.prompt(to_do)
 
-        print "#########################"
-        print "#        Summary        #"
-        print "#########################"
-        print ""
-        print self
-        print ""
-        print to_do
-        print ""
+        log("header", "#########################")
+        log("header", "#        Summary        #")
+        log("header", "#########################")
+        log("header", "")
+        log("info", self)
+        log("info", "")
+        log("info", to_do)
+        log("info", "")
         if to_do['nginx']:
-            print "WARNING: this will overwrite nginx config if the file exists!"
+            log(
+                "warn",
+                ("WARNING: this will overwrite nginx "
+                 "config if the file exists!"))
         raw_input("Cancel by pressing Ctrl-C or confirm by pressing Enter")
 
         exit_code = 0
@@ -324,7 +361,6 @@ PARSER.add_argument(
     help="action the script is to perform")
 
 ARGS = PARSER.parse_args()
-print ARGS
 VHOST = VHost()
 
 sys.exit(VHOST.create(ARGS.action))
