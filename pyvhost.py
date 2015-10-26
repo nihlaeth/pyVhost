@@ -384,7 +384,13 @@ PARSER.add_argument(
         "create-db",
         "create-nginx-config",
         "all"],
-    help="action the script is to perform")
+    help=(
+        "create-user creates a user (with disc quotum) and nothing else | "
+        "add-domain adds domain to existing user account, includes "
+        "database and nginx config creation | "
+        "create-db creates database, nothing else | "
+        "create-nginx-config creates nginx config file, nothing else | "
+        "all does all of the above"))
 
 ARGS = PARSER.parse_args()
 VHOST = VHost()
