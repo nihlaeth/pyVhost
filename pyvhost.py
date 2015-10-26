@@ -98,6 +98,9 @@ class VHost(object):
         if to_do['user'] or to_do['mysql']:
             self.password = gen_passwd()
 
+        if to_do['mysql']:
+            self.dbuser = cap16(self.domain)
+
         self.homedir = raw_input("Homedir[/home/%s]: " % self.username)
         if self.homedir == "":
             self.homedir = "/home/%s" % self.username
@@ -126,7 +129,6 @@ class VHost(object):
         """Create database."""
         # pylint: disable=no-member
         mysql_pass = getpass.getpass("Password for mysql root user: ")
-        self.dbuser = cap16(self.domain)
         sql = "create database %s;\n" % self.dbuser
         sql += "grant all privileges on %s.* " % self.dbuser
         sql += "to %s@\"localhost\" " % self.dbuser
@@ -274,7 +276,9 @@ class VHost(object):
             msg = MIMEText(str(encrypted_ascii_data))
         msg["From"] = "bestuur@humanity4all.nl"
         msg["To"] = self.mailto
-        msg["Subject"] = "Virtual host (%s) created" % self.username
+        msg["Subject"] = "Virtual host (%s:%s) created" % (
+            self.username,
+            self.domain)
         try:
             pipe = subprocess.Popen(
                 ["/usr/sbin/sendmail", "-t", "-oi"],
@@ -348,15 +352,25 @@ class VHost(object):
 
     def __str__(self):
         """Display data."""
-        result = "Username: %s\n" % self.username
+        result = "===================\n"
+        result += "==   Account     ==\n"
+        result += "===================\n"
+        result += "Username: %s\n" % self.username
         result += "Home directory: %s\n" % self.homedir
         result += "Skeleton directory: %s\n" % self.skel
-        result += "Disc quotum: %sMB" % self.disc_quotum
-        result += "Password: %s\n" % self.password
-        result += "Database: %s\n" % self.dbuser
+        result += "Disc quotum: %dMB\n" % self.disc_quotum
+        result += "===================\n"
+        result += "==    Domain     ==\n"
+        result += "===================\n"
         result += "Domain: %s\n" % self.domain
-        result += "Hostnames: %s\n" % self.hostnames
+        result += "Server name(s): %s\n" % self.hostnames
         result += "Nginx: %s\n" % self.nginx
+        result += "===================\n"
+        result += "==    Mysql      ==\n"
+        result += "===================\n"
+        result += "Database(user): %s\n" % self.dbuser
+        result += "Password: %s\n" % self.password
+
         return result
 
 PARSER = argparse.ArgumentParser(
