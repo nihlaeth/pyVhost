@@ -4,7 +4,19 @@ from random import choice
 import subprocess
 import crypt
 import getpass
+import sys
+import os
+import errno
+
 import MySQLdb as db
+
+# Dirty check for root privileges
+try:
+    os.rename('/etc/foo', '/etc/bar')
+except IOError as error:
+    if error[0] == errno.EPERM:
+        print >> sys.stderr, "You need root privileges to execute this script."
+        sys.exit(1)
 
 
 def gen_passwd(length=12):
@@ -22,6 +34,7 @@ def str_to_bool(text):
         return False
 
 
+# pylint: disable=too-many-instance-attributes
 class VHost(object):
 
     """Virtual Host."""
@@ -70,13 +83,14 @@ class VHost(object):
                 "-m",  # create home directory if it doesn't exist
                 "-p", crypt.crypt(self.password, "22"),  # encrypted password
                 self.username])
-        except OSError | subprocess.CalledProcessError, error:
+        except (OSError, subprocess.CalledProcessError) as error:
             print "Failed to create user account.", error
             return 1
         else:
             print "User creation successful!"
 
         # mysql
+        # pylint: disable=no-member
         try:
             mysql_pass = getpass.getpass("Password for mysql root user: ")
             connection = db.connect(
@@ -96,7 +110,7 @@ class VHost(object):
             cursor.execute(sql)
             cursor.close()
             connection.close()
-        except db.Error, error:
+        except db.Error as error:
             print "Database creation failed:"
             print "Error %d: %s" % (error.args[0], error.args[1])
             print "Try executing the sql manually:"
@@ -104,11 +118,50 @@ class VHost(object):
         else:
             print "Database creation successful!"
 
+        # nginx conf - work with templates
+        if self.nginx["ssl"] and self.nginx["php"]:
+            config = "nginx-php-ssl.template"
+        elif self.nginx["ssl"]:
+            config = "nginx-ssl.template"
+        elif self.php["php"]:
+            config = "nginx-php.template"
+        else:
+            config = "nginx.template"
+
+        with open(config, "r") as source:
+            template = string.Template(source.read())
+            template.substitute(
+                hostnames=self.hostnames,
+                username=self.username)
+            path = os.path.join("/etc/nginx/sites-available", self.username)
+            with open(path, "w") as config:
+                config.write(template)
+
+        print "Nginx config created"
+
+        # now link this config file in sites-enabled and restart nginx
+        try:
+            subprocess.call_check([
+                "ln",
+                "-s",
+                path,
+                "/etc/nginx/sites-enabled/."])
+        except (OSError, subprocess.CalledProcessError) as error:
+            print "Failed to create symlink in /etc/nginx/sites-enabled", error
+
+        # disc quota 
+
+
+        # mail summary to specified addresses, preferably using pgp
+
+        return 0
+
     def __str__(self):
         """Display data."""
         result = "Username: %s\n" % self.username
         result += "Password: %s\n" % self.password
         result += "Home directory: %s\n" % self.homedir
+        result += "Skeleton directory: %s\n" % self.skel
         result += "Create database: %s\n" % self.mysql
         result += "Hostnames: %s\n" % self.hostnames
         result += "Nginx: %s\n" % self.nginx
@@ -120,4 +173,11 @@ VHOST = VHost()
 
 VHOST.prompt()
 
+print ""
 print VHOST
+
+print ""
+raw_input("Cancel by pressing Ctrl-C or confirm by pressing Enter")
+print ""
+
+sys.exit(VHOST.create())
