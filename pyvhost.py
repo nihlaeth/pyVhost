@@ -59,13 +59,13 @@ class VHost(object):
 
         self.password = gen_passwd()
 
-        self.homedir = raw_input("Homedir[/var/www/%s]: " % self.username)
+        self.homedir = raw_input("Homedir[/home/%s]: " % self.username)
         if self.homedir == "":
-            self.homedir = "/var/www/%s" % self.username
+            self.homedir = "/home/%s" % self.username
 
-        self.skel = raw_input("Skeleton dir[/var/www/vhostskel]: ")
+        self.skel = raw_input("Skeleton dir[/home/vhostskel]: ")
         if self.skel == "":
-            self.skel = "/var/www/vhostskel"
+            self.skel = "/home/vhostskel"
 
         self.mysql = str_to_bool(raw_input("Create database? (yes/no): "))
         self.hostnames = raw_input("Hostname(s) (space separated): ")
