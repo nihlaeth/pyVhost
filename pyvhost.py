@@ -44,10 +44,10 @@ class VHost(object):
     def __init__(self):
         """Set variables to defaults."""
         self.username = ""
+        self.domain = ""
         self.password = ""
         self.homedir = ""
         self.skel = ""
-        self.mysql = ""
         self.hostnames = ""
         self.nginx = {'ssl': False, 'php': True}
         self.disc_quotum = 100
@@ -56,6 +56,8 @@ class VHost(object):
     def prompt(self):
         """Get data for virtual host."""
         self.username = raw_input("Username: ").lower()
+
+        self.domain = raw_input("Domain name: ").lower()
 
         self.password = gen_passwd()
 
@@ -67,8 +69,7 @@ class VHost(object):
         if self.skel == "":
             self.skel = "/home/vhostskel"
 
-        self.mysql = str_to_bool(raw_input("Create database? (yes/no): "))
-        self.hostnames = raw_input("Hostname(s) (space separated): ")
+        self.hostnames = raw_input("Server name(s) (space separated): ")
 
         self.nginx = {
             'ssl': str_to_bool(raw_input("Use ssl (yes/no): ")),
@@ -78,8 +79,38 @@ class VHost(object):
 
         self.mailto = raw_input("Mail summary to: ")
 
-    def create(self):
-        """After confirming the details, create the virtual host."""
+    def create_db(self):
+        """Create database."""
+        # pylint: disable=no-member
+        mysql_pass = getpass.getpass("Password for mysql root user: ")
+        if len(self.username) > 16:
+            dbuser = self.username[0:16]
+        else:
+            dbuser = self.username
+        sql = "create database %s;\n" % dbuser
+        sql += "grant all privileges on %s.* " % dbuser
+        sql += "to %s@\"localhost\" " % dbuser
+        sql += "identified by \"%s\";\n" % self.password
+        sql += "flush privileges;\n"
+        try:
+            connection = db.connect(
+                host="localhost",
+                user="root",
+                passwd=mysql_pass)
+            cursor = connection.cursor()
+            cursor.execute(sql)
+            cursor.close()
+            connection.close()
+        except db.Error as error:
+            print "Database creation failed:"
+            print "Error %d: %s" % (error.args[0], error.args[1])
+            print "Try executing the sql manually:"
+            print sql
+        else:
+            print "Database creation successful!"
+
+    def create_user(self):
+        """Create user account."""
         try:
             subprocess.check_call([
                 "useradd",
@@ -94,38 +125,31 @@ class VHost(object):
         else:
             print "User creation successful!"
 
-        # mysql
-        # pylint: disable=no-member
+    def create_domain(self):
+        """Create domain folder inside user account."""
+        try:
+            subprocess.check_call([
+                "mkdir",
+                "-p",
+                os.path.join(self.homedir, self.domain, "www")])
+        except (OSError, subprocess.CalledProcessError) as error:
+            print "Failed to create domain folder.", error
+        else:
+            print "Created domain folder."
 
-        if self.mysql:
-            mysql_pass = getpass.getpass("Password for mysql root user: ")
-            if len(self.username) > 16:
-                dbuser = self.username[0:16]
-            else:
-                dbuser = self.username
-            sql = "create database %s;\n" % dbuser
-            sql += "grant all privileges on %s.* " % dbuser
-            sql += "to %s@\"localhost\" " % dbuser
-            sql += "identified by \"%s\";\n" % self.password
-            sql += "flush privileges;\n"
-            try:
-                connection = db.connect(
-                    host="localhost",
-                    user="root",
-                    passwd=mysql_pass)
-                cursor = connection.cursor()
-                cursor.execute(sql)
-                cursor.close()
-                connection.close()
-            except db.Error as error:
-                print "Database creation failed:"
-                print "Error %d: %s" % (error.args[0], error.args[1])
-                print "Try executing the sql manually:"
-                print sql
-            else:
-                print "Database creation successful!"
+        try:
+            subprocess.check_call([
+                "chown",
+                "-R",
+                self.username + ":",
+                os.path.join(self.homedir, self.domain)])
+        except (OSError, subprocess.CalledProcessError) as error:
+            print "Failed to chown domain folder.", error
+        else:
+            print "Set %s as owner of domain folder." % self.username
 
-        # nginx conf - work with templates
+    def create_nginx(self):
+        """Create nginx config file."""
         if self.nginx["ssl"] and self.nginx["php"]:
             config = "nginx-php-ssl.template"
         elif self.nginx["ssl"]:
@@ -136,25 +160,24 @@ class VHost(object):
             config = "nginx.template"
 
         try:
-            with open(config, "r") as source:
-                template = string.Template(source.read())
+            with open(config, "r") as source_file:
+                template = string.Template(source_file.read())
                 template.substitute(
                     hostnames=self.hostnames,
-                    username=self.username,
-                    homedir=self.homedir)
+                    domain=self.domain,
+                    docroot=os.path.join(self.homedir, self.domain, "www"))
                 path = os.path.join(
                     "/etc/nginx/sites-available",
-                    self.username)
-                with open(path, "w") as config:
-                    config.write(template)
+                    self.domain)
+                with open(path, "w") as config_file:
+                    config_file.write(template)
         except (OSError, IOError) as error:
             print "Failed to create config file for nginx.", error
         else:  # only attempt symlink creation and nginx restart at success
             print "Nginx config created"
-
             # now link this config file in sites-enabled and restart nginx
             try:
-                subprocess.call_check([
+                subprocess.check_call([
                     "ln",
                     "-s",
                     path,
@@ -164,7 +187,7 @@ class VHost(object):
             else:
                 print "Created symlink to enable virtual host."
             try:
-                subprocess.call_check([
+                subprocess.check_call([
                     "/etc/init.d/nginx",
                     "restart"])
             except (OSError, subprocess.CalledProcessError) as error:
@@ -172,7 +195,8 @@ class VHost(object):
             else:
                 print "Restarted nginx."
 
-        # disc quota
+    def set_disc_quota(self):
+        """Set disc quota."""
         try:
             subprocess.check_call([
                 "setquota",
@@ -185,7 +209,8 @@ class VHost(object):
         except (OSError, subprocess.CalledProcessError) as error:
             print "Failed to set disc quotum.", error
 
-        # mail summary to specified addresses, preferably using pgp
+    def mail_summary(self):
+        """Send a summary to specified mail addresses via pgp it possible."""
         gpg = gnupg.GPG(gnupghome='/root')
         gpg.encoding = 'utf-8'
         # Note that any public key provided here must be trustes, or the
@@ -194,7 +219,7 @@ class VHost(object):
         msg = MIMEText(encrypted_ascii_data)
         msg["From"] = "bestuur@humanity4all.nl"
         msg["To"] = self.mailto
-        msg["Subject"] = "Virtual host (%s) created on inanna.humanity4all.nl." % self.username
+        msg["Subject"] = "Virtual host (%s) created" % self.username
         try:
             pipe = subprocess.Popen(
                 ["/usr/sbin/sendmail", "-t", "-oi"],
@@ -205,15 +230,24 @@ class VHost(object):
         else:
             print "Summary email sent."
 
+    def create(self):
+        """After confirming the details, create the virtual host."""
+        self.create_user()
+        self.create_domain()
+        self.create_db()
+        self.create_nginx()
+        self.set_disc_quota()
+        self.mail_summary()
+
         return 0
 
     def __str__(self):
         """Display data."""
         result = "Username: %s\n" % self.username
+        result += "Domain: %s\n" % self.domain
         result += "Password: %s\n" % self.password
         result += "Home directory: %s\n" % self.homedir
         result += "Skeleton directory: %s\n" % self.skel
-        result += "Create database: %s\n" % self.mysql
         result += "Hostnames: %s\n" % self.hostnames
         result += "Nginx: %s\n" % self.nginx
         result += "Disc quotum: %sMB" % self.disc_quotum
