@@ -128,29 +128,41 @@ class VHost(object):
         else:
             config = "nginx.template"
 
-        # TODO: catch errors so we know if config was created successfully
-        with open(config, "r") as source:
-            template = string.Template(source.read())
-            template.substitute(
-                hostnames=self.hostnames,
-                username=self.username)
-            path = os.path.join("/etc/nginx/sites-available", self.username)
-            with open(path, "w") as config:
-                config.write(template)
-
-        print "Nginx config created"
-
-        # now link this config file in sites-enabled and restart nginx
         try:
-            subprocess.call_check([
-                "ln",
-                "-s",
-                path,
-                "/etc/nginx/sites-enabled/."])
-        except (OSError, subprocess.CalledProcessError) as error:
-            print "Failed to create symlink in /etc/nginx/sites-enabled", error
-        else:
-            print "Created symlink to enable virtual host."
+            with open(config, "r") as source:
+                template = string.Template(source.read())
+                template.substitute(
+                    hostnames=self.hostnames,
+                    username=self.username)
+                path = os.path.join(
+                    "/etc/nginx/sites-available",
+                    self.username)
+                with open(path, "w") as config:
+                    config.write(template)
+        except (OSError, IOError) as error:
+            print "Failed to create config file for nginx.", error
+        else:  # only attempt symlink creation and nginx restart at success
+            print "Nginx config created"
+
+            # now link this config file in sites-enabled and restart nginx
+            try:
+                subprocess.call_check([
+                    "ln",
+                    "-s",
+                    path,
+                    "/etc/nginx/sites-enabled/."])
+            except (OSError, subprocess.CalledProcessError) as error:
+                print "Failed to create symlink.", error
+            else:
+                print "Created symlink to enable virtual host."
+            try:
+                subprocess.call_check([
+                    "/etc/init.d/nginx",
+                    "restart"])
+            except (OSError, subprocess.CalledProcessError) as error:
+                print "Failed to restart nginx.", error
+            else:
+                print "Restarted nginx."
 
         # disc quota
         try:
