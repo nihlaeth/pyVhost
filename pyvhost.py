@@ -218,10 +218,16 @@ class VHost(object):
         """Send a summary to specified mail addresses via pgp it possible."""
         gpg = gnupg.GPG(gnupghome='/root')
         gpg.encoding = 'utf-8'
-        # Note that any public key provided here must be trustes, or the
-        # encryption will fail silently. No errors!
-        encrypted_ascii_data = gpg.encrypt(str(self), self.mailto)
-        msg = MIMEText(encrypted_ascii_data)
+        encrypted_ascii_data = gpg.encrypt(
+            str(self),
+            self.mailto.split(", "),
+            always_trust=True)
+        if str(encrypted_ascii_data) == "":
+            print "No public key available. Send unencrypted?"
+            raw_input("Press Ctrl-C to cancel, press Enter to continue.")
+            msg = MIMEText(str(self))
+        else:
+            msg = MIMEText(str(encrypted_ascii_data))
         msg["From"] = "bestuur@humanity4all.nl"
         msg["To"] = self.mailto
         msg["Subject"] = "Virtual host (%s) created" % self.username
