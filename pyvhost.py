@@ -50,7 +50,7 @@ class VHost(object):
         self.homedir = ""
         self.skel = ""
         self.hostnames = ""
-        self.nginx = {'ssl': False, 'php': True}
+        self.nginx = {'ssl': False, 'php': False}
         self.disc_quotum = 100
         self.mailto = ""
 
@@ -268,6 +268,8 @@ class VHost(object):
         print ""
         print to_do
         print ""
+        if to_do['nginx']:
+            print "WARNING: this will overwrite nginx config if the file exists!"
         raw_input("Cancel by pressing Ctrl-C or confirm by pressing Enter")
 
         exit_code = 0
