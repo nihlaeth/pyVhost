@@ -97,7 +97,7 @@ class VHost(object):
         """Get data for virtual host."""
         self.username = raw_input("Username: ").lower()
 
-        if to_do['domain']:
+        if to_do['domain'] or to_do['nginx']:
             self.domain = raw_input("Domain name: ").lower()
 
         if to_do['user'] or to_do['mysql']:
