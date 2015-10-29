@@ -104,7 +104,7 @@ class VHost(object):
             self.password = gen_passwd()
 
         if to_do['mysql']:
-            self.dbuser = cap16(self.domain)
+            self.dbuser = cap16(self.domain).replace(".", "_")
 
         self.homedir = raw_input("Homedir[/home/%s]: " % self.username)
         if self.homedir == "":
@@ -142,8 +142,8 @@ class VHost(object):
         """Create database."""
         # pylint: disable=no-member
         mysql_pass = getpass.getpass("Password for mysql root user: ")
-        sql = "create database '%s';\n" % self.dbuser
-        sql += "grant all privileges on '%s'.* " % self.dbuser
+        sql = "create database %s;\n" % self.dbuser
+        sql += "grant all privileges on %s.* " % self.dbuser
         sql += "to %s@'localhost' " % self.dbuser
         sql += "identified by '%s';\n" % self.password
         sql += "flush privileges;\n"
