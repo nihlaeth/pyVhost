@@ -272,15 +272,25 @@ class VHost(object):
                 log("fail", error)
             else:
                 log("ok", "Created symlink to enable virtual host.")
+            
             try:
                 subprocess.check_call([
                     "/etc/init.d/nginx",
-                    "restart"])
+                    "configtest"])
             except (OSError, subprocess.CalledProcessError) as error:
-                log("fail", "Failed to restart nginx.")
+                log("fail", "Invalid nginx config - fix manually!")
                 log("fail", error)
             else:
-                log("ok", "Restarted nginx.")
+                log("ok", "Nginx config valid - now restarting nginx...")
+                try:
+                    subprocess.check_call([
+                        "/etc/init.d/nginx",
+                        "restart"])
+                except (OSError, subprocess.CalledProcessError) as error:
+                    log("fail", "Failed to restart nginx.")
+                    log("fail", error)
+                else:
+                    log("ok", "Restarted nginx.")
 
     def set_disc_quota(self):
         """Set disc quota."""
