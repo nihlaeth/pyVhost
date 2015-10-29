@@ -211,7 +211,7 @@ class VHost(object):
     def create_nginx(self):
         """Create nginx config file."""
         try:
-            with open("default", "r") as source_file:
+            with open("/usr/share/pyVHost/default", "r") as source_file:
                 template = string.Template(source_file.read())
                 template = template.substitute(
                     hostnames=self.hostnames,
