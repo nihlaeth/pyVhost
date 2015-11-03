@@ -42,7 +42,7 @@ server {
         
         # Deny all attempts to access hidden files such as .htaccess, .htpasswd, .DS_Store (Mac).
         # Keep logging the requests to parse later (or to pass to firewall utilities such as fail2ban)
-        location ~ /\. {
+        location ^~ /\. {
             deny all;
         }
 
@@ -53,14 +53,14 @@ server {
             deny all;
         }
 
-	location ~ \.log$$ {
+	location ^~ \.log$$ {
 	    return 444;
 	    access_log off;
 	    log_not_found off;
 	}
 
         # Deny direct access to php files in the wp-content directory
-        ${wp}location /wp-content/*\.php$$ {
+        ${wp}location ~ /wp-content/*\.php$$ {
         ${wp}   return 444;
         ${wp}}
 
