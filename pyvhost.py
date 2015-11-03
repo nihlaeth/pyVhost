@@ -249,7 +249,7 @@ class VHost(object):
                         "365",
                         "-nodes",
                         "-newkey",
-                        "rsa:048",
+                        "rsa:2048",
                         "-out",
                         os.path.join("/etc/nginx/certs", self.domain + ".pem"),
                         "-keyout",
