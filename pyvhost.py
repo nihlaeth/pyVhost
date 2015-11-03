@@ -213,7 +213,7 @@ class VHost(object):
         try:
             with open("/usr/share/pyVhost/default", "r") as source_file:
                 template = string.Template(source_file.read())
-                template = template.substitute(
+                template = template.safe_substitute(
                     hostnames=self.hostnames,
                     domain=self.domain,
                     docroot=os.path.join(self.homedir, self.domain, "www"),
@@ -249,7 +249,7 @@ class VHost(object):
                         "365",
                         "-nodes",
                         "-newkey",
-                        "rsa:2048",
+                        "rsa:048",
                         "-out",
                         os.path.join("/etc/nginx/certs", self.domain + ".pem"),
                         "-keyout",

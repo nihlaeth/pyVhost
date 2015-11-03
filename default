@@ -1,71 +1,85 @@
-$sslred $ssl server { # redirects to https
-$sslred	$ssl 	listen 80;
-$sslred	$ssl 	server_name $hostnames;
-$sslred	$ssl 	return 301 https://$$host$$request_uri;
-$sslred $ssl }
+${sslred}${ssl}server { # redirects to https
+${sslred}${ssl} listen 80;
+${sslred}${ssl} server_name $hostnames;
+${sslred}${ssl} return 301 https://$$host$$request_uri;
+${sslred}${ssl}}
 
-$wwwred server {
-$wwwred    server_name  $domain;
-$wwwred    rewrite ^(.*) https://www.$domain$$1 permanent;
-$wwwred}
+${wwwred}server {
+${wwwred}   server_name  $domain;
+${wwwred}   rewrite ^(.*) https://www.$domain$$1 permanent;
+${wwwred}}
 
 server {
-	$sslred listen 80;
-	$ssl listen 443 ssl;
-	$ipv6 $sslred listen [::]:80;
-	$ssl $ipv6 listen [::]:443 ssl;
+	${sslred}listen 80;
+	${ssl}listen 443 ssl;
+	${ipv6}${sslred}listen [::]:80;
+	${ssl}${ipv6}listen [::]:443 ssl;
 	server_name $hostnames;
 	access_log /var/log/nginx/$domain.log;
 	root $docroot;
 	
-	$ssl ssl on;
-        $ssl ssl_certificate certs/$domain.pem;
-	$ssl ssl_certificate_key certs/$domain.key;
+	${ssl}ssl on;
+        ${ssl}ssl_certificate certs/$domain.pem;
+	${ssl}ssl_certificate_key certs/$domain.key;
 
-	include global/restrictions.conf;
-
-	$wp include global/wordpress.conf;
+        # Directives to send expires headers and turn off 404 error logging.
+        ${wp}location ~* ^.+\.(ogg|ogv|svg|svgz|eot|otf|woff|mp4|ttf|rss|atom|jpg|jpeg|gif|png|ico|zip|tgz|gz|rar|bz2|doc|xls|exe|ppt|tar|mid|midi|wav|bmp|rtf)$$
+        ${wp}{
+        ${wp}   access_log off; log_not_found off; expires max;
+        ${wp}}
 
 	location = /favicon.ico {
-		expires max;
-		log_not_found off;
-		access_log off;
-		return 204;
+	    expires max;
+	    log_not_found off;
+	    access_log off;
+	    return 204;
 	}
 
 	location = /robots.txt {
-		log_not_found off;
-		access_log off;
+	    log_not_found off;
+	    access_log off;
 	}
+        
+        # Deny all attempts to access hidden files such as .htaccess, .htpasswd, .DS_Store (Mac).
+        # Keep logging the requests to parse later (or to pass to firewall utilities such as fail2ban)
+        location ~ /\. {
+            deny all;
+        }
 
-	location ~ /\.(ht|git) {
-		return 444;
-		access_log off;
-		log_not_found off;
-	}
+        # Deny access to any files with a .php extension in the uploads directory
+        # Works in sub-directory installs and also in multisite network
+        # Keep logging the requests to parse later (or to pass to firewall utilities such as fail2ban)
+        location ~* /(?:uploads|files)/.*\.php$$ {
+            deny all;
+        }
 
 	location ~ \.log$$ {
-		return 444;
-		access_log off;
-		log_not_found off;
+	    return 444;
+	    access_log off;
+	    log_not_found off;
 	}
+
+        # Deny direct access to php files in the wp-content directory
+        ${wp}location /wp-content/*\.php$$ {
+        ${wp}   return 444;
+        ${wp}}
 
 	location / {
-		$php index index.html index.htm index.php;
-                $nophp index index.html index.htm;
-		$wp try_files $$uri $$uri/ /index.php?args =404;
-                $nowp try_files $$uri $$uri/ =404;
+	    ${php}index index.html index.htm index.php;
+            ${nophp}index index.html index.htm;
+	    ${wp}try_files $$uri $$uri/ /index.php?args =404;
+            ${nowp}try_files $$uri $$uri/ =404;
 	}
 
-	$php location ~ \.php$$ {
-	$php 	fastcgi_split_path_info ^(.+\.php)(/.+)$$;
-	$php 	include fastcgi_params;
-	$php 	fastcgi_param SCRIPT_FILENAME $$document_root$$fastcgi_script_name;
-	$php $ssl	fastcgi_param HTTPS on;
-	$php 	fastcgi_index index.php;
-                # With php5-fpm:
-        $php 	fastcgi_pass unix:/var/run/php5-fpm.sock;
-	$php 	try_files $$uri $$uri/ =404;
-	$php}
+	${php}location ~ \.php$$ {
+	${php}	fastcgi_split_path_info ^(.+\.php)(/.+)$$;
+	${php}	include fastcgi_params;
+	${php}  fastcgi_param SCRIPT_FILENAME $$document_root$$fastcgi_script_name;
+	${php}${ssl}    fastcgi_param HTTPS on;
+	${php}	fastcgi_index index.php;
+            # With php5-fpm:
+        ${php}	fastcgi_pass unix:/var/run/php5-fpm.sock;
+	${php}	try_files $$uri $$uri/ =404;
+	${php}}
 
 }
