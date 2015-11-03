@@ -60,8 +60,8 @@ server {
 	}
 
         # Deny direct access to php files in the wp-content directory
-        ${wp}location ~ /wp-content/*\.php$$ {
-        ${wp}   return 444;
+        ${wp}location ~ /wp-content/.*\.php$$ {
+        ${wp}   deny all;
         ${wp}}
 
 	location / {
