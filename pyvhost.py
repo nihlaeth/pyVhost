@@ -237,28 +237,29 @@ class VHost(object):
             log("ok", "Nginx config created")
 
             # if indicated, create self-signed certificates
-            try:
-                subprocess.check_call([
-                    "openssl",
-                    "req",
-                    "-new",
-                    "-x509",
-                    "-sha256",
-                    "-days",
-                    "365",
-                    "-nodes",
-                    "-newkey",
-                    "rsa:2048",
-                    "-out",
-                    os.path.join("/etc/nginx/certs", self.domain + ".pem"),
-                    "-keyout",
-                    os.path.join("/etc/nginx/certs", self.domain + ".key")
-                    ])
-            except (OSError, subprocess.CalledProcessError) as error:
-                log("fail", "Failed to create certificates.")
-                log("fail", error)
-            else:
-                log("ok", "Created self-signed certificates.")
+            if self.nginx["sslcert"]:
+                try:
+                    subprocess.check_call([
+                        "openssl",
+                        "req",
+                        "-new",
+                        "-x509",
+                        "-sha256",
+                        "-days",
+                        "365",
+                        "-nodes",
+                        "-newkey",
+                        "rsa:2048",
+                        "-out",
+                        os.path.join("/etc/nginx/certs", self.domain + ".pem"),
+                        "-keyout",
+                        os.path.join("/etc/nginx/certs", self.domain + ".key")
+                        ])
+                except (OSError, subprocess.CalledProcessError) as error:
+                    log("fail", "Failed to create certificates.")
+                    log("fail", error)
+                else:
+                    log("ok", "Created self-signed certificates.")
 
             # now link this config file in sites-enabled and restart nginx
             try:
@@ -272,7 +273,7 @@ class VHost(object):
                 log("fail", error)
             else:
                 log("ok", "Created symlink to enable virtual host.")
-            
+
             try:
                 subprocess.check_call([
                     "/etc/init.d/nginx",
