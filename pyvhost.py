@@ -8,11 +8,14 @@ import getpass
 import sys
 import os
 import errno
+import random
 
 import MySQLdb as db
 import gnupg
 from email.mime.text import MIMEText
 import argparse
+from crontab import CronTab
+
 
 # Dirty check for root privileges
 try:
@@ -97,7 +100,7 @@ class VHost(object):
         """Get data for virtual host."""
         self.username = raw_input("Username: ").lower()
 
-        if to_do['domain'] or to_do['nginx']:
+        if to_do['domain'] or to_do['nginx'] or to_do['mysql']:
             self.domain = raw_input("Domain name: ").lower()
 
         if to_do['user'] or to_do['mysql']:
@@ -163,6 +166,36 @@ class VHost(object):
             log("info", sql)
         else:
             log("ok", "Database creation successful!")
+        # now set backup script
+        command = "mysqldump -h 127.0.0.1 "
+        command += "--user %s " % self.dbuser
+        command += "--password=%s " % self.password
+        command += "%s > " % self.dbuser
+        command += "%s/" % os.path.join(self.homedir, self.domain, "backup")
+        command += "%s-dump-" % self.dbuser
+        command += "`date \"+%Y-%m-%d-%H-%M\"`.sql"
+        dbrotate = "find %s" % os.path.join(
+            self.homedir,
+            self.domain,
+            "backup")
+        dbrotate += " -type f -mtime +2|xargs -i rm -f {}"
+        cron = CronTab(user=self.username)
+        backup = cron.new(command=command)
+        minute = random.choice(range(60))
+        hour = random.choice(range(24))
+        backup.setall("%d %d * * *" % (minute, hour))
+        rotate = cron.new(command=dbrotate)
+        minute = random.choice(range(60))
+        hour = random.choice(range(24))
+        rotate.setall("%d %d * * *" % (minute, hour))
+        try:
+            assert backup.is_valid() == True
+            assert rotate.is_valid() == True
+        except AssertionError:
+            log("fail", "Invalid cron command for db backups.")
+        else:
+            cron.write_to_user(user=self.username)
+            log("ok", "Added cron for db backup and backup rotation.")
 
     def create_user(self):
         """Create user account."""
@@ -193,6 +226,17 @@ class VHost(object):
             log("fail", error)
         else:
             log("ok", "Created domain folder.")
+
+        try:
+            subprocess.check_call([
+                "mkdir",
+                "-p",
+                os.path.join(self.homedir, self.domain, "backup")])
+        except (OSError, subprocess.CalledProcessError) as error:
+            log("fail", "Failed to create backup folder.")
+            log("fail", error)
+        else:
+            log("ok", "Created backup folder.")
 
         try:
             subprocess.check_call([
@@ -313,6 +357,7 @@ class VHost(object):
         gpg = gnupg.GPG(gnupghome='/root/.gnupg')
         encrypted_data = gpg.encrypt(str(self), self.mailto, always_trust=True)
         if encrypted_data.status != "encryption ok":
+            # pylint: disable=no-member
             log("fail", "PGP encryption failed.")
             log("fail", encrypted_data.status)
             log("fail", encrypted_data.stderr)
