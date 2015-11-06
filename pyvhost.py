@@ -343,8 +343,8 @@ class VHost(object):
             subprocess.check_call([
                 "setquota",
                 "-u", self.username,
-                str(self.disc_quotum * 5),  # soft limit (blocks)
-                str(int(self.disc_quotum * 5 * 1.5)),  # hard limit (blocks)
+                str(self.disc_quotum * 1024),  # soft limit (blocks)
+                str(int(self.disc_quotum * 1024 * 1.5)),  # hard limit (blocks)
                 "0",  # soft limit (inodes)
                 "0",  # hard limit (inodes)
                 "-a"])  # on all volumes in /etc/mtab
