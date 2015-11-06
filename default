@@ -6,7 +6,7 @@ ${sslred}${ssl}}
 
 ${wwwred}server {
 ${wwwred}   server_name  $domain;
-${wwwred}   rewrite ^(.*) https://www.$domain$$1 permanent;
+${wwwred}   return 301 http://www.$domain$$1;
 ${wwwred}}
 
 server {
