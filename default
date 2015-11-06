@@ -28,7 +28,7 @@ server {
         ${wp}   access_log off; log_not_found off; expires max;
         ${wp}}
 
-        ${wp}include globals/ithemes-security.conf
+        ${wp}include global/ithemes-security.conf;
 
 	location = /favicon.ico {
 	    expires max;
