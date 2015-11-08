@@ -1,5 +1,5 @@
 #!/usr/bin/python
-"""Because so many malicious php code uses base64_decode."""
+"""Because so much malicious php code uses base64_decode."""
 
 import subprocess
 import sys
