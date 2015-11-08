@@ -7,7 +7,9 @@ import sys
 # Not going with valid constant names here, it's a small script
 # pylint: disable=invalid-name
 # List all files
-find = subprocess.Popen(('find', str(sys.argv[1])), stdout=subprocess.PIPE)
+find = subprocess.Popen(
+    ('find', str(sys.argv[1]), '-type', 'f'),
+    stdout=subprocess.PIPE)
 
 # Find any with php in the title to narrow it down a bit
 # Really, files without php in their title could still be executed
