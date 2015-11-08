@@ -37,6 +37,8 @@ else:
     data = []
 
 valid_files = (
+    # wordpress files that should contain base64_decode
+    "/wp-content/plugins/all-in-one-seo-pack/OAuth.php",
     "/wp-content/plugins/better-wp-security/core/class-itsec-core.php",
     "/wp-includes/class-smtp.php",
     "/wp-includes/class-IXR.php",
@@ -45,7 +47,28 @@ valid_files = (
     "/wp-includes/class-wp-customize-widgets.php",
     "/wp-includes/ID3/module.audio.ogg.php",
     "/wp-includes/class-feed.php",
-    "/wp-admin/includes/file.php")
+    "/wp-admin/includes/file.php",
+    # smf files that should contain base64_decode
+    "/Sources/Subs-Post.php",
+    "/Sources/Search.php",
+    "/Sources/ManageErrors.php",
+    "/Sources/Articles.php",
+    "/Sources/PersonalMessage.php",
+    "/Sources/Modlog.php",
+    "/Sources/Subs-OpenID.php",
+    "/Sources/Subs-Menu.php",
+    "/Sources/Subs-Editor.php",
+    "/Sources/Packages.php",
+    "/Sources/ManageMembers.php",
+    "/Sources/Calendar.php",
+    "/Sources/Articles2.php",
+    # mediawiki files that should contain base64_decode
+    "/includes/password/EncryptedPassword.php",
+    "/includes/password/Pbkdf2Password.php",
+    "/includes/Import.php",
+    "/extensions/SyntaxHighlight_GeSHi/geshi/geshi/gml.php",
+    "/extensions/SyntaxHighlight_GeSHi/geshi/geshi/php.php",
+    "/extensions/SyntaxHighlight_GeSHi/geshi/geshi/php-brief.php")
 
 for entry in data:
     if not entry.endswith(valid_files):
