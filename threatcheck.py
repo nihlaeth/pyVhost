@@ -1,3 +1,4 @@
+#!/usr/bin/python
 """Because so many malicious php code uses base64_decode."""
 
 import subprocess
