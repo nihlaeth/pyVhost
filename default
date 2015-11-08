@@ -10,9 +10,9 @@ ${wwwred}   return 301 http://www.$domain$$1;
 ${wwwred}}
 
 server {
-	${sslred}listen 80;
+	${nosslred}listen 80;
 	${ssl}listen 443 ssl;
-	${ipv6}${sslred}listen [::]:80;
+	${ipv6}${nosslred}listen [::]:80;
 	${ssl}${ipv6}listen [::]:443 ssl;
 	server_name $hostnames;
 	access_log /var/log/nginx/$domain.access.log;
@@ -69,7 +69,7 @@ server {
 	location / {
 	    ${php}index index.html index.htm index.php;
             ${nophp}index index.html index.htm;
-	    ${wp}try_files $$uri $$uri/ /index.php?args =404;
+	    ${wp}try_files $$uri $$uri/ /index.php?args;
             ${nowp}try_files $$uri $$uri/ =404;
 	}
 
@@ -81,7 +81,6 @@ server {
 	${php}	fastcgi_index index.php;
             # With php5-fpm:
         ${php}	fastcgi_pass unix:/var/run/php5-fpm.sock;
-	${php}	try_files $$uri $$uri/ =404;
 	${php}}
 
 }

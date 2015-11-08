@@ -263,6 +263,7 @@ class VHost(object):
                     docroot=os.path.join(self.homedir, self.domain, "www"),
                     ssl="" if self.nginx["ssl"] else "#",
                     sslred="" if self.nginx["sslred"] else "#",
+                    nosslred="#" if self.nginx["sslred"] else "",
                     wp="" if self.nginx["wp"] else "#",
                     nowp="#" if self.nginx["wp"] else "",
                     php="" if self.nginx["php"] else "#",
