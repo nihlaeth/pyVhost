@@ -107,7 +107,7 @@ class VHost(object):
             self.password = gen_passwd()
 
         if to_do['mysql']:
-            self.dbuser = cap16(self.domain).replace(".", "_")
+            self.dbuser = cap16(self.domain).replace(".", "_").replace("-", "_")
 
         self.homedir = raw_input("Homedir[/home/%s]: " % self.username)
         if self.homedir == "":
