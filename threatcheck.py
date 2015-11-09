@@ -3,16 +3,27 @@
 
 import subprocess
 import sys
+import argparse
 
 
 # Not going with valid constant names here, it's a small script
 # pylint: disable=invalid-name
 
+parser = argparse.ArgumentParser(
+    prog="threatcheck",
+    description="Check for suspicious php code")
+parser.add_argument(
+    'path',
+    type=str,
+    help="path to scan")
+
+args = parser.parse_args()
+
 # First, find all files (not directories) in the path provided,
 # with php in their name (case insensitive). Then grep the accumulated
 # file list for occurences of base64_decode and return filenames of the
 # positives.
-cmd = 'find %s ' % sys.argv[1]
+cmd = 'find %s ' % args.path
 cmd += '-type f '
 cmd += '-iname \'*php*\' '
 cmd += '-exec '
