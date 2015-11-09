@@ -361,11 +361,9 @@ class VHost(object):
         install = str_to_bool(raw_input("Install wordpress? (y/n): "))
         if install:
             try:
-                subprocess.check_call([
-                    "cp",
-                    "-r",  # include directories
-                    "/etc/pyvhost/wp-%s/*" % lang,
-                    "%s" % docroot], shell=True)
+                subprocess.check_call(
+                    "cp -r /etc/pyvhost/wp-%s/* %s/." % (lang, docroot),
+                    shell=True)
             except (OSError, subprocess.CalledProcessError) as error:
                 log("fail", "Failed to copy wordpress files to docroot.")
                 log("fail", error)
