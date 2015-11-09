@@ -254,13 +254,14 @@ class VHost(object):
 
     def create_nginx(self):
         """Create nginx config file."""
+        docroot = os.path.join(self.homedir, self.domain, "www")
         try:
             with open("/usr/share/pyVhost/default", "r") as source_file:
                 template = string.Template(source_file.read())
                 template = template.safe_substitute(
                     hostnames=self.hostnames,
                     domain=self.domain,
-                    docroot=os.path.join(self.homedir, self.domain, "www"),
+                    docroot=docroot,
                     ssl="" if self.nginx["ssl"] else "#",
                     sslred="" if self.nginx["sslred"] else "#",
                     nosslred="#" if self.nginx["sslred"] else "",
@@ -337,6 +338,55 @@ class VHost(object):
                     log("fail", error)
                 else:
                     log("ok", "Restarted nginx.")
+        # Now do some wordpress magic
+        # I added this here, because create_nginx has all
+        # the right info and it was too much work to separate
+        # out the wordpress stuff
+        if self.nginx['wp']:
+            self.create_wordpress(docroot)
+
+    def create_wordpress(self, docroot):
+        """Arrange all the wordpress stuff."""
+        lang = str(raw_input(
+            "Choose wordpress language. (eng/nl)[eng]: "))
+        if lang == "":
+            lang = "eng"
+        # add to /etc/pyvhost/wordpress list for maintenance
+        try:
+            with open("/etc/pyvhost/wordpress", 'a') as mfile:
+                mfile.write("%s %s %s\n" % (
+                    lang.upper(),
+                    docroot,
+                    self.domain))
+        except (OSError, IOError) as error:
+            log(
+                "fail",
+                "Failed to add domain to wordpress maintenance list")
+            log("fail", error)
+            log(
+                "info",
+                "Try adding this line to /etc/pyvhost/wordpress manually:")
+            log("info", "%s %s %s\n" % (
+                lang.upper(),
+                docroot,
+                self.domain))
+        else:
+            log("ok", "Added domain to wordpress maintenance list.")
+
+        # install wordpress if necessary
+        install = str_to_bool(raw_input("Install wordpress? (y/n): "))
+        if install:
+            try:
+                subprocess.check_call([
+                    "cp",
+                    "-r",  # include directories
+                    "/etc/pyvhost/wp-%s/*" % lang,
+                    "%s" % docroot])
+            except (OSError, subprocess.CalledProcessError) as error:
+                log("fail", "Failed to copy wordpress files to docroot.")
+                log("fail", error)
+            else:
+                log("ok", "Copied wordpress files to docroot.")
 
     def set_disc_quota(self):
         """Set disc quota."""
