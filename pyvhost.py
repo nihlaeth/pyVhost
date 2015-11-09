@@ -365,7 +365,7 @@ class VHost(object):
                     "cp",
                     "-r",  # include directories
                     "/etc/pyvhost/wp-%s/*" % lang,
-                    "%s" % docroot])
+                    "%s" % docroot], shell=True)
             except (OSError, subprocess.CalledProcessError) as error:
                 log("fail", "Failed to copy wordpress files to docroot.")
                 log("fail", error)
