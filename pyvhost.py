@@ -331,11 +331,17 @@ class VHost(object):
             lang = "eng"
         # add to /etc/pyvhost/wordpress list for maintenance
         try:
+            line = "%s %s %s" % (lang.upper(), docroot, self.domain)
+            line_pres = False
+            with open("/etc/pyvhost/wordpress", 'r') as mfile:
+                content = mfile.read().split('\n')
+                for rule in content:
+                    if rule == line:
+                        line_pres = True
+                if not line_pres:
+                    content.append(line)
             with open("/etc/pyvhost/wordpress", 'a') as mfile:
-                mfile.write("%s %s %s\n" % (
-                    lang.upper(),
-                    docroot,
-                    self.domain))
+                mfile.write('\n'.join(content))
         except (OSError, IOError) as error:
             log(
                 "fail",
