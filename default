@@ -48,6 +48,16 @@ server {
         location ^~ /\. {
             deny all;
         }
+        
+        # Deny access to files with ~ in their names, as these are usually
+        # vim backup files and can result in passwords being leaked
+        location ~ ~ {
+            return 403;
+        }
+
+        location ~ \.bak$$ {
+            return 403;
+        }
 
         # Deny access to any files with a .php extension in the uploads directory
         # Works in sub-directory installs and also in multisite network
