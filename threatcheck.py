@@ -15,14 +15,9 @@ import sys
 cmd = 'find %s ' % sys.argv[1]
 cmd += '-type f '
 cmd += '-iname \'*php*\' '
-cmd += '-execdir '
+cmd += '-exec '
 cmd += 'grep -l base64_decode {} +'
-data = subprocess.check_output(cmd, shell=True)
-
-if data is not None:
-    data = data.split("\n")
-else:
-    data = []
+data = subprocess.check_output(cmd, shell=True).split('\n')
 
 valid_files = (
     # wordpress files that should contain base64_decode
