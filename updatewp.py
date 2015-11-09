@@ -5,8 +5,17 @@ import subprocess
 import argparse
 import os
 import sys
+import errno
 
 from colorlog import log
+
+# Dirty check for root privileges
+try:
+    os.rename('/etc/foo', '/etc/bar')
+except (OSError, IOError) as error:
+    if error[0] == errno.EPERM:
+        log("fail", "You need root privileges to execute this script.")
+        sys.exit(1)
 
 # I don't care about constant naming in short scripts.
 # I kinda hate typing in all caps.
