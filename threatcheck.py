@@ -7,31 +7,18 @@ import sys
 
 # Not going with valid constant names here, it's a small script
 # pylint: disable=invalid-name
-# List all files
-find = subprocess.Popen(
-    ('find', str(sys.argv[1]), '-type', 'f'),
-    stdout=subprocess.PIPE)
 
-# Find any with php in the title to narrow it down a bit
-# Really, files without php in their title could still be executed
-# via includes, but that's relatively rare
-grep = subprocess.Popen(
-    ('grep', 'php'),
-    stdin=find.stdout,
-    stdout=subprocess.PIPE)
+# First, find all files (not directories) in the path provided,
+# with php in their name (case insensitive). Then grep the accumulated
+# file list for occurences of base64_decode and return filenames of the
+# positives.
+cmd = 'find %s ' % sys.argv[1]
+cmd += '-type f '
+cmd += '-iname \'*php*\' '
+cmd += '-execdir '
+cmd += 'grep -l base64_decode {} +'
+data = subprocess.check_output(cmd, shell=True)
 
-# Now grep any php file for the occurance of base64_decode
-xargs = subprocess.Popen((
-    'xargs',
-    '-I{}',
-    'grep',
-    '-l',
-    'base64_decode',
-    '{}'), stdin=grep.stdout, stdout=subprocess.PIPE)
-find.stdout.close()
-grep.stdout.close()
-
-data = xargs.communicate()[0]
 if data is not None:
     data = data.split("\n")
 else:
