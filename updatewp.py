@@ -62,7 +62,7 @@ except (OSError, IOError) as error:
 upgraded = []
 
 for wordpress in installations:
-    if wordpress == "":
+    if wordpress == "" or wordpress.startswith("#"):
         # log("info", "Empty entry in /etc/pyvhost/wordpress")
         continue
     # [0] = language [1] = path to root [2] = domain
