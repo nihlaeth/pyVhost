@@ -89,13 +89,13 @@ try:
     subprocess.check_call([
         "ln",
         "-sf",
-        "%s" % os.path.join(scriptdir, "upgradewp.py"),
-        "/usr/bin/upgradewp"])
+        "%s" % os.path.join(scriptdir, "updatewp.py"),
+        "/usr/bin/updatewp"])
 except (OSError, subprocess.CalledProcessError) as error:
-    log("fail", "Failed to create a symlink to upgradewp.py")
+    log("fail", "Failed to create a symlink to updatewp.py")
     log("fail", error)
 else:
-    log("ok", "Creates symlink to upgradewp.py (upgradewp)")
+    log("ok", "Creates symlink to updatewp.py (updatewp)")
 
 try:
     subprocess.check_call([
