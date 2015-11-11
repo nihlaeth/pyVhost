@@ -3,6 +3,8 @@ if [ $# -lt 3 ]
 then
     echo "Used for separating wordpress multi-site enabled blogs."
     echo "Do NOT use for separating main blog if you don't know what you're doing!"
+    echo "For further steps to take after separating the db, check:"
+    echo "http://www.greenhatwebs.com/610/migrating-wordpress-multisite-to-single-site/"
     echo "Usage: `basename $0` user database pattern"
     echo "Eg: `basename $0` root mydatabase wp_2_%"
     exit 1
