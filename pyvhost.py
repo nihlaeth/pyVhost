@@ -340,7 +340,7 @@ class VHost(object):
                         line_pres = True
                 if not line_pres:
                     content.append(line)
-            with open("/etc/pyvhost/wordpress", 'a') as mfile:
+            with open("/etc/pyvhost/wordpress", 'w') as mfile:
                 mfile.write('\n'.join(content))
         except (OSError, IOError) as error:
             log(
