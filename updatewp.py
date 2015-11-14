@@ -124,6 +124,18 @@ for wordpress in installations:
     else:
         log("fail", "Unknown extension")
         sys.exit(1)
+    # now chown the directory in question to the correct user!
+    user = install[1].split("/")[2]
+    if install[1].split("/")[1] != "etc":  # don't chown stuff in /etc
+        try:
+            subprocess.check_call([
+                "chown",
+                "-R",
+                "%s:" % user,
+                "%s" % unpack_path])
+        except (OSError, subprocess.CalledProcessError) as error:
+            log("fail", "Failed to set directory owner properly")
+            log("fail", error)
 
 log("info", "Visit the following domains for database updates:")
 for domain in upgraded:
