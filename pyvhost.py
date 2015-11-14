@@ -369,6 +369,16 @@ class VHost(object):
                 log("fail", error)
             else:
                 log("ok", "Copied wordpress files to docroot.")
+            # Now chown directory!
+            try:
+                subprocess.check_call([
+                    "chown",
+                    "-R",
+                    "%s:" % self.username,
+                    "%s" % docroot])
+            except (OSError, subprocess.CalledProcessError) as error:
+                log("fail", "Failed to set owner of wordpress install")
+                log("fail", error)
 
     def set_disc_quota(self):
         """Set disc quota."""
