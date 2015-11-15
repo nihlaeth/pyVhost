@@ -151,7 +151,7 @@ class VHost(object):
         command += "%s > " % self.dbuser
         command += "%s/" % os.path.join(self.homedir, self.domain, "backup")
         command += "%s-dump-" % self.dbuser
-        command += "`date \"+%Y-%m-%d-%H-%M\"`.sql"
+        command += "`date \"+\\%Y-\\%m-\\%d-\\%H-\\%M\"`.sql"
         dbrotate = "find %s" % os.path.join(
             self.homedir,
             self.domain,
