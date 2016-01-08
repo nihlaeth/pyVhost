@@ -127,11 +127,11 @@ for wordpress in installations:
 
     # now move everything from wordpress/ to .
     try:
-        subprocess.check_call([
-            "rsync",
-            "-a",
-            "%s" % os.path.join(unpack_path, "wordpress"),
-            "%s" % unpack_path])
+        subprocess.check_call(
+            "cp -r %s %s" % (
+                os.path.join(unpack_path, "wordpress", "*"),
+                unpack_path),
+            shell=True)
     except (OSError, subprocess.CalledProcessError) as error:
         log("fail", "Couldn't move stuff from wordpress to root dir.")
         log("fail", error)
