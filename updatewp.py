@@ -128,7 +128,7 @@ for wordpress in installations:
     # now move everything from wordpress/ to .
     try:
         subprocess.check_call(
-            "mv %s %s" % (os.path.join(
+            "mv -f %s %s" % (os.path.join(
                 unpack_path, "wordpress", "*"), unpack_path),
             shell=True)
     except (OSError, subprocess.CalledProcessError) as error:
