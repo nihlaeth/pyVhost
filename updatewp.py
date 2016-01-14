@@ -125,29 +125,30 @@ for wordpress in installations:
         log("fail", "Unknown extension")
         sys.exit(1)
 
-    # now move everything from wordpress/ to .
-    try:
-        subprocess.check_call(
-            "cp -r %s %s" % (
-                os.path.join(unpack_path, "wordpress", "*"),
-                unpack_path),
-            shell=True)
-    except (OSError, subprocess.CalledProcessError) as error:
-        log("fail", "Couldn't move stuff from wordpress to root dir.")
-        log("fail", error)
-    else:
-        log("ok", "Successfully moved files from wordpress to root dir.")
-    # remove wordpress directory
-    try:
-        subprocess.check_call([
-            "rm",
-            "-r",
-            "%s" % os.path.join(unpack_path, "wordpress")])
-    except (OSError, subprocess.CalledProcessError) as error:
-        log("fail", "Failed to remove wordpress directory.")
-        log("fail", error)
-    else:
-        log("ok", "Successfully removed wordpress directory")
+    if args.action == "system":
+        # now move everything from wordpress/ to .
+        try:
+            subprocess.check_call(
+                "cp -r %s %s" % (
+                    os.path.join(unpack_path, "wordpress", "*"),
+                    unpack_path),
+                shell=True)
+        except (OSError, subprocess.CalledProcessError) as error:
+            log("fail", "Couldn't move stuff from wordpress to root dir.")
+            log("fail", error)
+        else:
+            log("ok", "Successfully moved files from wordpress to root dir.")
+        # remove wordpress directory
+        try:
+            subprocess.check_call([
+                "rm",
+                "-r",
+                "%s" % os.path.join(unpack_path, "wordpress")])
+        except (OSError, subprocess.CalledProcessError) as error:
+            log("fail", "Failed to remove wordpress directory.")
+            log("fail", error)
+        else:
+            log("ok", "Successfully removed wordpress directory")
 
     # now chown the directory in question to the correct user!
     user = install[1].split("/")[2]
